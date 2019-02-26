@@ -68,7 +68,7 @@ namespace Parser
                     {
                         FieldType keyType = ToFieldType(field.Type.ExternTypes[0].Name, result);
                         FieldType valueType = ToFieldType(field.Type.ExternTypes[1].Name, result);
-                        if (keyType != FieldType.BaseType || field.Type.ExternTypes[0].Name.Value == "bytes")
+                        if (field.Type.ExternTypes[0].Name.Value == "bytes" ||  keyType > FieldType.Enum)
                             throw new Exception(string.Format("Wrong key type in {0}", field.Type.ExternTypes[0].Name));
 
                         if (valueType == FieldType.Vector || valueType == FieldType.Map)
@@ -79,7 +79,7 @@ namespace Parser
                     //记录类型引用
                     if (field.Type.TypeType == FieldType.Struct || field.Type.TypeType == FieldType.Enum)
                     {
-                        entity.IncludeCustoType.Add(field.Type.Type.Value);
+                        entity.IncludeCustomType.Add(field.Type.Type.Value);
                     }
                     else if (field.Type.TypeType == FieldType.Vector || field.Type.TypeType == FieldType.Map)
                     {
@@ -87,7 +87,7 @@ namespace Parser
                         {
                             if (ext.Type == FieldType.Struct || ext.Type == FieldType.Enum)
                             {
-                                entity.IncludeCustoType.Add(ext.Name.Value);
+                                entity.IncludeCustomType.Add(ext.Name.Value);
                             }
                         }
                     }
@@ -102,6 +102,7 @@ namespace Parser
 
                 }
             }
+            
         }
 
         public static FieldType ToFieldType(Token token, ProtoResult result)
@@ -115,7 +116,7 @@ namespace Parser
             if (result.Structs.Exists(obj => obj.Name.Value == token.Value))
                 return FieldType.Struct;
             if (result.Enums.Exists(obj => obj.Name.Value == token.Value))
-                return FieldType.Struct;
+                return FieldType.Enum;
 
             throw new Exception(string.Format("UnKnown type {0}", token));
         }

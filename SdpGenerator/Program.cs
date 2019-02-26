@@ -1,4 +1,5 @@
-﻿using ITDM;
+﻿using CodeGen;
+using ITDM;
 using Parser;
 using System;
 
@@ -14,16 +15,16 @@ namespace SdpGenerator
                 CmdLineString srcDir = new CmdLineString("src", true, "源文件目录");
                 CmdLineString csharpDir = new CmdLineString("csharp", false, "生成C#文件的目录");
                 CmdLineString cppDir = new CmdLineString("cpp", false, "生成C++文件的目录");
-                CmdLineString nameSpace = new CmdLineString("namespace", false, "生成C++文件的目录");
+                CmdLineString nameSpace = new CmdLineString("namespace", false, "命名空间");
                 c.RegisterParameter(srcDir);
                 c.RegisterParameter(csharpDir);
                 c.RegisterParameter(cppDir);
                 c.Parse(args);
                 ProtoResult result = Builder.BuildProto(srcDir);
                 if (csharpDir.Exists)
-                    Builder.GenCSharpFile(result, csharpDir, nameSpace);
+                    Builder.GenCSharpFile(result, CodeGenHelper.InputDirHandle(csharpDir), nameSpace);
                 if (cppDir.Exists)
-                    Builder.GenCSharpFile(result, cppDir, nameSpace);
+                    Builder.GenCppFile(result, CodeGenHelper.InputDirHandle(cppDir), nameSpace);
             }
             catch (System.Exception ex)
             {

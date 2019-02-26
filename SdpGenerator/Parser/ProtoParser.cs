@@ -16,7 +16,7 @@ namespace Parser
 
         private static RegexMatch IntMatch = new RegexMatch("^[+-]?([0-9]{1,})$");
         private static RegexMatch UIntMatch = new RegexMatch("^[+]?([0-9]{1,})$");
-        private static RegexMatch VarNameMatch = new RegexMatch("^[a-zA-Z_]([a-zA-Z0-9_]{1,})$");
+        private static RegexMatch VarNameMatch = new RegexMatch("^[a-zA-Z_]([a-zA-Z0-9_]{0,})$");
         private static RegexMatch TypeNameMatch = new RegexMatch("^[a-zA-Z_]([a-zA-Z0-9_]{1,})([.][a-zA-Z_]([a-zA-Z0-9_]{1,}))?$");
         private static SymbolMatch CommaMatch = new SymbolMatch(',');
         private static SymbolMatch SemicolonMatch = new SymbolMatch(';');
@@ -111,7 +111,7 @@ namespace Parser
                 {
                     Token token1 = null;
                     Token token2 = null;
-                    if (!OpeningAngleMatch.Match(it) || !BaseTypeMatch.Match(it, ref token1) || !CommaMatch.Match(it) || !TypeNameMatch.Match(it, ref token2) || !CloseingAngleMatch.Match(it))
+                    if (!OpeningAngleMatch.Match(it) || !TypeNameMatch.Match(it, ref token1) || !CommaMatch.Match(it) || !TypeNameMatch.Match(it, ref token2) || !CloseingAngleMatch.Match(it))
                         break;
                     //entity.Params.Add(token1);
                     //entity.Params.Add(token2);

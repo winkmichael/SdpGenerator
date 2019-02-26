@@ -52,7 +52,7 @@ namespace Parser
         public List<StructField> Fields = new List<StructField>();
         public bool IsMessage = false;
 
-        public HashSet<string> IncludeCustoType = new HashSet<string>();
+        public HashSet<string> IncludeCustomType = new HashSet<string>();
     }
 
     public class ProtoResult

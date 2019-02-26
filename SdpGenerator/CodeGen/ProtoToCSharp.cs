@@ -28,7 +28,7 @@ namespace CodeGen
                 {
                     sb.Append(" = ").Append(field.Value.Value);
                 }
-                sb.Append(',');
+                sb.Append(',').NewLine();
             }
             sb.AppendTable(tableCount).Append('}').NewLine();
 

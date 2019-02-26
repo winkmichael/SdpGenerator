@@ -31,7 +31,7 @@ namespace CodeGen
                 {
                     sb.Append(" = ").Append(field.Value.Value);
                 }
-                sb.Append(',');
+                sb.Append(',').NewLine();
             }
             sb.AppendTable(tableCount).Append('}').NewLine();
 
@@ -53,7 +53,7 @@ namespace CodeGen
             sb.Append("#include <map>").NewLine();
             sb.Append("#include <algorithm>").NewLine();
             //生成头文件引用
-            foreach (var type in entity.IncludeCustoType)
+            foreach (var type in entity.IncludeCustomType)
             {
                 sb.AppendFormat("#include \"{0}\"", TypeToFileName(type, nameSpace)).NewLine();
             }
@@ -73,7 +73,7 @@ namespace CodeGen
             }
             sb.NewLine();
             //生成构造函数
-            sb.AppendTable(tableCount + 1).AppendFormat("{0}() = defult;", entity.Name.Value).NewLine();
+            sb.AppendTable(tableCount + 1).AppendFormat("{0}() = default;", entity.Name.Value).NewLine();
             sb.AppendTable(tableCount + 1).AppendFormat("const char *getName() const {0} return \"{1}\"; {2} ", '{', entity.Name.Value, '}').NewLine();
 
             //反序列化接口

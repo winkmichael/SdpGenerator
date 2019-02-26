@@ -28,6 +28,15 @@ namespace CodeGen
                 if (File.ReadAllText(filePath) == txt)
                     return;
             }
+            File.WriteAllText(filePath, txt);
+        }
+
+        public static string InputDirHandle(string dir)
+        {
+            dir = dir.Replace("\\", "/");
+            if (!dir.EndsWith('/'))
+                dir += "/";
+            return dir;
         }
     }
 }

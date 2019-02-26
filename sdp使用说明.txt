@@ -1,0 +1,53 @@
+创建一个sdp后缀名的文件
+语法类似C/C++
+使用//做注释，不能使用/**/ 
+
+枚举类型，完全和C++一样，生成的代码是C++11后支持的安全型 枚举类 
+enum ObjType
+{
+	eBox,
+	eMesh = 3,
+	eBalabal,
+}
+
+结构体,生成的代码就是结构体、序列化接口、swap接口、比较操作符重载
+和C的结构一样，唯一的区别是在每个字段前有一个大于0索引号(和protobuf中的索引一个意思)
+支持的类型基础有：
+int uint long ulong bool float double string 以及二进制数组bytes（在C++中用string表示）
+默认值为0、false和空字符串
+支持的容器有：
+List（C++中对应 std::vector,C#中对应List）List<ValueType> ValueType可以是任意类型
+Map（C++中对应std::map， C#中对应Dictionary） Map<KeyType, ValueType> KeyType只能是基础类型(除了bytes)以及自定义枚举 ValueType可以是任意类型
+字段类型可以是基础类型、容器、自定义枚举、自定义结构体
+字段声明： 索引 类型 名字;
+索引号不能重复，最好从小到大，为了版本兼容，用过的索引号如果对应的字段废弃后索引号就不要再用了（和protobuf一样）
+
+生成的C++代码里面的成员变量不包含指针，所以不能有循环引用 比如A结构体的一个字段是B类型，B类型里面又由一个字段是A类型，这种代码再C++无法编译通过的
+struct TStruct
+{
+    1 float X1;
+    2 float Y;
+    3 float Z;
+}
+//这是注释
+struct Test
+{
+    1 float X1;
+    2 float Y;
+    3 float Z;
+    //这是注释
+    4 ObjType EnumField;
+    5 List<string> ListFiled;
+    6 Map<int, TStruct> MapField;//这是注释
+    7 TStruct StructField;
+}
+
+sdp的解析不需要头文件引用，C#类型，生成的时候会扫描指定文件夹下所有的sdp文件，自动解析依赖关系，即便同一个文件中结构体的定义顺序都不用关心
+生成工具命令行参数 用空格区分 -参数1 "值" -参数2 "值2"
+因为C++中代码文件很多，所以生成的代码最好带命名空间 通过 -ns "命名空间" 来添加
+命令行参数类型
+-src sdp源文件文件夹 会自动扫描文件夹下所有的.sdp文件 必须参数
+-csharp 生成的C#文件目录 可选参数
+-cpp 生成的C++文件目录 可选参数
+-ns 生成代码的命名空间 可选参数
+可以一次生成C++和C#代码，或者分开生成

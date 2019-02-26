@@ -19,7 +19,7 @@ namespace CodeGen
             int tableCount = 0;
             if (!string.IsNullOrEmpty(nameSpace))
             {
-                sb.Append("namespace ").Append(nameSpace).NewLine().Append('{').NewLine();
+                sb.Append("namespace ").Append(nameSpace).NewLine().Append('{').NewLine().NewLine();
                 tableCount = 1;
             }
             sb.AppendTable(tableCount).AppendFormat("enum class{0} : int", entity.Name.Value).NewLine();

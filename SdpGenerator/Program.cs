@@ -15,10 +15,11 @@ namespace SdpGenerator
                 CmdLineString srcDir = new CmdLineString("src", true, "源文件目录");
                 CmdLineString csharpDir = new CmdLineString("csharp", false, "生成C#文件的目录");
                 CmdLineString cppDir = new CmdLineString("cpp", false, "生成C++文件的目录");
-                CmdLineString nameSpace = new CmdLineString("namespace", false, "命名空间");
+                CmdLineString nameSpace = new CmdLineString("ns", false, "命名空间");
                 c.RegisterParameter(srcDir);
                 c.RegisterParameter(csharpDir);
                 c.RegisterParameter(cppDir);
+                c.RegisterParameter(nameSpace);
                 c.Parse(args);
                 ProtoResult result = Builder.BuildProto(srcDir);
                 if (csharpDir.Exists)

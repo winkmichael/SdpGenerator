@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
-using System.Reflection;
 
 namespace Sdp
 {
@@ -13,9 +12,6 @@ namespace Sdp
         private uint _CurPos;
 
         private uint _Size;
-
-        static MethodInfo _UnPackList = typeof(SdpReader).GetMethod("UnPackList");
-        static MethodInfo _UnPackMap = typeof(SdpReader).GetMethod("UnPackMap");
 
         public SdpReader(byte[] stream, uint iCurPos, uint iSize = 0u)
         {
@@ -31,71 +27,30 @@ namespace Sdp
             }
         }
 
-        public bool UnPack<T>(ref T val, uint tag)
-        {
-            var ser = Sdp.GetSerializer<T>();
-            if (val == null)
-                val = Activator.CreateInstance<T>();
-            if (ser != null)
-            {
-                val = (T)ser.Read(this, tag, true, val);
-                return true;
-            }
-            else
-            {
-                Type type = typeof(T);
-                if (type.IsEnum)
-                {
-                    VisitEunm(tag, null, true, ref val);
-                    return true;
-                }
-                else
-                {
-                    if (Sdp.IsContainer(type))
-                    {
-                        Type[] genericTypes = type.GetGenericArguments();
-                        object[] args = new object[] { tag, null, true, val };
-                        if (genericTypes.Length == 1)
-                        {
-                            _UnPackList.MakeGenericMethod(genericTypes).Invoke(this, args);
-                            return true;
-                        }
-                        else if (genericTypes.Length == 2)
-                        {
-                            _UnPackMap.MakeGenericMethod(genericTypes).Invoke(this, args);
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-
-        public T UnPack<T>(uint tag)
-        {
-            T val = Activator.CreateInstance<T>();
-            if (UnPack(ref val, tag))
-                return val;
-            return default(T);
-        }
-
         public bool SkipToTag(uint iTag)
         {
             uint iCurTag = 0u;
             SdpPackDataType eType = SdpPackDataType.SdpPackDataType_Integer_Positive;
+            bool result;
             while (_CurPos < _Size)
             {
                 uint i = PeekHead(ref iCurTag, ref eType);
-
-                if (eType == SdpPackDataType.SdpPackDataType_StructEnd || iCurTag > iTag)
+                bool flag = eType == SdpPackDataType.SdpPackDataType_StructEnd || iCurTag > iTag;
+                if (flag)
+                {
                     break;
-
-                if (iCurTag == iTag)
-                    return true;
+                }
+                bool flag2 = iCurTag == iTag;
+                if (flag2)
+                {
+                    result = true;
+                    return result;
+                }
                 Skip(i);
                 SkipField(eType);
             }
-            return false;
+            result = false;
+            return result;
         }
 
         public SdpPackDataType UnPackHead(ref uint iTag)
@@ -104,9 +59,11 @@ namespace Sdp
             uint iType = _Stream[(int)_CurPos];
             iTag = (iType & 15u);
             _CurPos += 1u;
-            if (iTag == 15u)
+            bool flag = iTag == 15u;
+            if (flag)
+            {
                 iTag = Unpack32();
-
+            }
             return (SdpPackDataType)(iType >> 4);
         }
 
@@ -142,9 +99,9 @@ namespace Sdp
 
         private void Checksize(uint size)
         {
-            if (_Size - _CurPos < size)
+            bool flag = _Size - _CurPos < size;
+            if (flag)
             {
-                throw new Exception("SdpReader.Checksize() faile!!!");
             }
         }
 
@@ -210,9 +167,11 @@ namespace Sdp
             while (true)
             {
                 SdpPackDataType curtype = UnPackHead(ref curtag);
-                if (curtype == SdpPackDataType.SdpPackDataType_StructEnd)
+                bool flag = curtype == SdpPackDataType.SdpPackDataType_StructEnd;
+                if (flag)
+                {
                     break;
-
+                }
                 SkipField(curtype);
             }
         }
@@ -247,62 +206,14 @@ namespace Sdp
             return bytes;
         }
 
-        public void UnPackList<T>(uint tag, string name, bool require, ICollection<T> val)
-        {
-            val.Clear();
-            if (SkipToTag(tag))
-            {
-                SdpPackDataType type = UnPackHead(ref tag);
-                if (type == SdpPackDataType.SdpPackDataType_Vector)
-                {
-                    uint iSize = Unpack32();
-                    if (val == null)
-                        val = new List<T>((int)iSize);
-                    ISerializer ser = Sdp.GetSerializer<T>();
-                    for (uint i = 0; i < iSize; ++i)
-                    {
-                        T t = Activator.CreateInstance<T>();
-                        t = (T)ser.Read(this, 0, require, t);
-                        val.Add(t);
-                    }//for
-                }//if
-            }//if
-        }
-
-        public void UnPackMap<TKey, TValue>(uint tag, string name, bool require, IDictionary<TKey, TValue> val)
-        {
-            val.Clear();
-            if (SkipToTag(tag))
-            {
-                SdpPackDataType type = UnPackHead(ref tag);
-                if (type == SdpPackDataType.SdpPackDataType_Map)
-                {
-                    uint iSize = Unpack32();
-                    if (val == null)
-                        val = new Dictionary<TKey, TValue>((int)iSize);
-                    ISerializer keySer = Sdp.GetSerializer<TKey>();
-                    ISerializer valSer = Sdp.GetSerializer<TValue>();
-                    for (var i = 0; i < iSize; ++i)
-                    {
-                        TKey key = Activator.CreateInstance<TKey>();
-                        TValue value = Activator.CreateInstance<TValue>();
-                        key = (TKey)keySer.Read(this, 0, require, key);
-                        value = (TValue)valSer.Read(this, 0, require, value);
-                        if (val.ContainsKey(key))
-                            val.Remove(key);
-                        val.Add(key, value);
-                    }//for
-                }//if
-            }//if
-        }
-
         private uint PeekHead(ref uint iTag, ref SdpPackDataType eType)
         {
             uint i = 1u;
             Checksize(1u);
             eType = (SdpPackDataType)(_Stream[(int)_CurPos] >> 4);
             iTag = (uint)(_Stream[(int)_CurPos] & 15);
-            if (iTag == 15u)
+            bool flag = iTag == 15u;
+            if (flag)
             {
                 _CurPos += 1u;
                 i += PeekNumber32(ref iTag);
@@ -445,7 +356,8 @@ namespace Sdp
                 if (type == SdpPackDataType.SdpPackDataType_String)
                 {
                     uint iLen = Unpack32();
-                    if (iLen > 0u)
+                    bool flag3 = iLen > 0u;
+                    if (flag3)
                     {
                         val = UnPackString(iLen);
                     }
@@ -523,17 +435,93 @@ namespace Sdp
                 }
             }
         }
-        
-        public void Visit<T>(uint tag, string name, bool require, ICollection<T> val)
-        {
-            UnPackList(tag, name, require, val);
-        }
-        
 
-        public void Visit<TKey, TValue>(uint tag, string name, bool require, IDictionary<TKey, TValue> val)
+        public void Visit<T>(uint tag, string name, bool require, ref List<T> val)
         {
-            UnPackMap(tag, name, require, val);
+            if (SkipToTag(tag))
+            {
+                SdpPackDataType type = UnPackHead(ref tag);
+                if (type == SdpPackDataType.SdpPackDataType_Vector)
+                {
+                    uint iSize = Unpack32();
+                    if (val == null)
+                        val = new List<T>((int)iSize);
+                    ISerializer ser = Sdp.GetSerializer<T>();
+                    for (uint i=0; i<iSize; ++i)
+                    {
+                        T t = Activator.CreateInstance<T>();
+                        t = (T)ser.Read(this, 0, require, t);
+                        val.Add(t);
+                    }//for
+                }//if
+            }//if
         }
-        
+
+        public void Visit(uint tag, string name, bool require, ref IList val, ISerializer ser, Type typeT)
+        {
+            if (SkipToTag(tag))
+            {
+                SdpPackDataType type = UnPackHead(ref tag);
+                if (type == SdpPackDataType.SdpPackDataType_Vector)
+                {
+                    uint iSize = Unpack32();
+                    for (uint i = 0; i < iSize; ++i)
+                    {
+                        object t = Activator.CreateInstance(typeT);
+                        t = ser.Read(this, 0, require, t);
+                        val.Add(t);
+                    }//for
+                }//if
+            }//if
+        }
+
+        public void Visit<TKey, TValue>(uint tag, string name, bool require, ref Dictionary<TKey, TValue> val)
+        {
+            if (SkipToTag(tag))
+            {
+                SdpPackDataType type = UnPackHead(ref tag);
+                if (type == SdpPackDataType.SdpPackDataType_Map)
+                {
+                    uint iSize = Unpack32();
+                    if (val == null)
+                        val = new Dictionary<TKey, TValue>((int)iSize);
+                    ISerializer keySer = Sdp.GetSerializer<TKey>();
+                    ISerializer valSer = Sdp.GetSerializer<TValue>();
+                    for (var i=0; i<iSize; ++i)
+                    {
+                        TKey key = Activator.CreateInstance<TKey>();
+                        TValue value = Activator.CreateInstance<TValue>();
+                        key = (TKey)keySer.Read(this, 0, require, key);
+                        value = (TValue)valSer.Read(this, 0, require, value);
+                        if (val.ContainsKey(key))
+                            val.Remove(key);
+                        val.Add(key, value);
+                    }//for
+                }//if
+            }//if
+        }
+
+        public void Visit(uint tag, string name, bool require, ref IDictionary val, ISerializer keySer, Type keyType, ISerializer valSer, Type valType)
+        {
+            if (SkipToTag(tag))
+            {
+                SdpPackDataType type = UnPackHead(ref tag);
+                if (type == SdpPackDataType.SdpPackDataType_Map)
+                {
+                    uint iSize = Unpack32();
+                    for (var i = 0; i < iSize; ++i)
+                    {
+                        object key = Activator.CreateInstance(keyType);
+                        object value = Activator.CreateInstance(valType);
+                        key = keySer.Read(this, 0, require, key);
+                        value = valSer.Read(this, 0, require, value);
+                        if (val.Contains(key))
+                            val.Remove(key);
+                        val.Add(key, value);
+                    }//for
+                }//if
+            }//if
+        }
+
     }
 }

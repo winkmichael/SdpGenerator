@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Reflection;
 
 namespace Sdp
 {
@@ -13,8 +12,7 @@ namespace Sdp
         private MemoryStream _Stream;
 
         private uint _CurPos;
-        static MethodInfo _PackList = typeof(SdpWriter).GetMethod("PackList");
-        static MethodInfo _PackMap = typeof(SdpWriter).GetMethod("PackMap");
+
         public SdpWriter()
         {
             _Stream = new MemoryStream();
@@ -27,47 +25,10 @@ namespace Sdp
             _CurPos = (uint)stream.Position;
         }
 
-        public bool Pack<T>(T val, uint tag = 0)
-        {
-            var ser = Sdp.GetSerializer<T>();
-            if (ser != null)
-            {
-                ser.Write(val, this, tag, true);
-                return true;
-            }
-            else
-            {
-                Type type = typeof(T);
-                if (type.IsEnum)
-                {
-                    VisitEunm(tag, null, true, ref val);
-                    return true;
-                }
-                else
-                {
-                    if (Sdp.IsContainer(type))
-                    {
-                        Type[] genericTypes = type.GetGenericArguments();
-                        object[] args = new object[] { tag, null, true, val };
-                        if (genericTypes.Length == 1)
-                        {
-                            _PackList.MakeGenericMethod(genericTypes).Invoke(this, args);
-                            return true;
-                        }
-                        else if (genericTypes.Length == 2)
-                        {
-                            _PackMap.MakeGenericMethod(genericTypes).Invoke(this, args);
-                            return false;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-
         public void PackInt32(uint iTag, int iValue)
         {
-            if (iValue < 0)
+            bool flag = iValue < 0;
+            if (flag)
             {
                 PackHead(iTag, SdpPackDataType.SdpPackDataType_Integer_Negative);
                 PackNum32((uint)(-(uint)iValue));
@@ -81,7 +42,8 @@ namespace Sdp
 
         public void PackInt64(uint iTag, long iValue)
         {
-            if (iValue < 0L)
+            bool flag = iValue < 0L;
+            if (flag)
             {
                 PackHead(iTag, SdpPackDataType.SdpPackDataType_Integer_Negative);
                 PackNum64((ulong)(-iValue));
@@ -96,7 +58,8 @@ namespace Sdp
         public void PackHead(uint iTag, SdpPackDataType eType)
         {
             byte head = (byte)((int)eType << 4);
-            if (iTag < 15u)
+            bool flag = iTag < 15u;
+            if (flag)
             {
                 head |= (byte)iTag;
                 WriteRawByte(head);
@@ -129,40 +92,6 @@ namespace Sdp
                 val >>= 7;
             }
             WriteRawByte((byte)val);
-        }
-
-        public void PackList<T>(uint tag, string name, bool require, ICollection<T> val)
-        {
-            if (val == null)
-                return;
-            if (require || val.Count > 0)
-            {
-                PackHead(tag, SdpPackDataType.SdpPackDataType_Vector);
-                PackNum32((uint)val.Count);
-                ISerializer ser = Sdp.GetSerializer<T>();
-                foreach (var t in val)
-                {
-                    ser.Write(t, this, 0, true);
-                }
-            }
-        }
-
-        public void PackMap<TKey, TValue>(uint tag, string name, bool require, IDictionary<TKey, TValue> val)
-        {
-            if (val == null)
-                return;
-            if (require || val.Count > 0)
-            {
-                PackHead(tag, SdpPackDataType.SdpPackDataType_Map);
-                PackNum32((uint)val.Count);
-                ISerializer keySer = Sdp.GetSerializer<TKey>();
-                ISerializer valSer = Sdp.GetSerializer<TValue>();
-                foreach (var pair in val)
-                {
-                    keySer.Write(pair.Key, this, 0, true);
-                    valSer.Write(pair.Value, this, 0, true);
-                }
-            }
         }
 
         public uint CurrPos()
@@ -329,15 +258,63 @@ namespace Sdp
             }
         }
 
-        public void Visit<T>(uint tag, string name, bool require, ICollection<T> val)
+        public void Visit<T>(uint tag, string name, bool require, ref List<T> val)
         {
-            PackList(tag, name, require, val);
+            if (require || val.Count > 0)
+            {
+                PackHead(tag, SdpPackDataType.SdpPackDataType_Vector);
+                PackNum32((uint)val.Count);
+                ISerializer ser = Sdp.GetSerializer<T>();
+                foreach(var t in val)
+                {
+                    ser.Write(t, this, 0, true);
+                }
+            }
         }
-        
-        public void Visit<TKey, TValue>(uint tag, string name, bool require, IDictionary<TKey, TValue> val)
+
+        public void Visit<TKey, TValue>(uint tag, string name, bool require, ref Dictionary<TKey, TValue> val)
         {
-            PackMap(tag, name, require,  val);
+            if (require || val.Count > 0)
+            {
+                PackHead(tag, SdpPackDataType.SdpPackDataType_Map);
+                PackNum32((uint)val.Count);
+                ISerializer keySer = Sdp.GetSerializer<TKey>();
+                ISerializer valSer = Sdp.GetSerializer<TValue>();
+                foreach(var pair in val)
+                {
+                    keySer.Write(pair.Key, this, 0, true);
+                    valSer.Write(pair.Value, this, 0, true);
+                }
+            }
         }
-        
+
+        public void Visit(uint tag, string name, bool require, ref IList val, ISerializer ser, Type typeT)
+        {
+            if (require || val.Count > 0)
+            {
+                PackHead(tag, SdpPackDataType.SdpPackDataType_Vector);
+                PackNum32((uint)val.Count);
+                foreach (var t in val)
+                {
+                    ser.Write(t, this, 0, true);
+                }
+            }
+        }
+
+        public void Visit(uint tag, string name, bool require, ref IDictionary val, ISerializer keySer, Type keyType, ISerializer valSer, Type valType)
+        {
+            if (require || val.Count > 0)
+            {
+                PackHead(tag, SdpPackDataType.SdpPackDataType_Map);
+                PackNum32((uint)val.Count);
+                
+                foreach (var pair in val)
+                {
+                    keySer.Write(((DictionaryEntry)pair).Key, this, 0, true);
+                    valSer.Write(((DictionaryEntry)pair).Value, this, 0, true);
+                }
+            }
+        }
+
     }
 }

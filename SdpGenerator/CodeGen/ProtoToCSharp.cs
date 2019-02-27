@@ -73,6 +73,18 @@ namespace CodeGen
                 {
                     sb.AppendFormat("sdp.VisitEunm({0}, \"{1}\", false, ref {1});", field.Index.IntValue, field.Name.Value);
                 }
+                else if (field.Type.TypeType == FieldType.Struct)
+                {
+                    sb.AppendFormat("sdp.VisitStruct({0}, \"{1}\", false, ref {1});", field.Index.IntValue, field.Name.Value);
+                }
+                else if (field.Type.TypeType == FieldType.Vector)
+                {
+                    sb.AppendFormat("sdp.VisitList({0}, \"{1}\", false, ref {1});", field.Index.IntValue, field.Name.Value);
+                }
+                else if (field.Type.TypeType == FieldType.Map)
+                {
+                    sb.AppendFormat("sdp.VisitMap({0}, \"{1}\", false, ref {1});", field.Index.IntValue, field.Name.Value);
+                }
                 else
                 {
                     sb.AppendFormat("sdp.Visit({0}, \"{1}\", false, ref {1});", field.Index.IntValue, field.Name.Value);

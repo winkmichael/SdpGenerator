@@ -64,7 +64,7 @@ namespace CodeGen
             }
             sb.NewLine();
             //生成序列化接口
-            sb.AppendTable(tableCount + 1).Append("public void Visit(Sdp.ISdp sdp)");
+            sb.AppendTable(tableCount + 1).Append("public void Visit(Sdp.ISdp sdp)").NewLine();
             sb.AppendTable(tableCount + 1).Append('{').NewLine();
             foreach (var field in entity.Fields)
             {
@@ -95,7 +95,7 @@ namespace CodeGen
             sb.Append(' ').Append(field.Name.Value);
             if (field.Type.TypeType > FieldType.Enum )
             {
-                sb.Append(" = ").AppendFieldTypeString(field).Append("()");
+                sb.Append(" = new ").AppendFieldTypeString(field).Append("()");
             }
             sb.Append(';');
             return sb;
